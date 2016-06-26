@@ -1,0 +1,219 @@
+<html>
+<head>
+	<script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
+	<link rel="stylesheet" href="/css/style.css">
+</head>
+<body onload="init()">
+	<canvas id="canvas" width="1000" height="1000"></canvas>
+	<script>
+window.AudioContext = window.AudioContext || window.webkitAudioContext;
+navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
+var SPF = 1024;  // sample per frame
+var PBS = 200;  // pitch buffer size
+var audioCtx = null;
+var micSource = null;
+var analyser = null;
+var buffer = new Float32Array(SPF);
+var pitchBuffer = new Array(PBS);
+
+var stage = null;
+var line = null, linePitch = null;
+
+var patterns = [
+	[0, 1, 0],
+	[2, 1, 0]
+];
+// var patterns = null;
+// var callback = null;
+
+function init() {
+	audioCtx = new AudioContext();
+	navigator.getUserMedia({audio: true}, function (stream) {
+		micSource = audioCtx.createMediaStreamSource(stream);
+		analyser = audioCtx.createAnalyser();
+		analyser.fftSize = SPF;
+		micSource.connect(analyser);
+		// patterns = p;
+		// callback = cb;
+		setupPattern();
+		setInterval(processing, 30);
+	}, function () {
+		alert('getUserMedia error');
+	});
+}
+
+function setupPattern() {
+	for (var i = 0; i < patterns.length; i++) {
+		var sum = 0;
+		for (var j = 0; j < patterns[i].length; j++) {
+			sum += patterns[i][j];
+		}
+		var mean = sum / patterns[i].length;
+		var stddev = 0;
+		for (var j = 0; j < patterns[i].length; j++) {
+			patterns[i][j] -= mean;
+			stddev += patterns[i][j] * patterns[i][j];
+		}
+		stddev = Math.sqrt(stddev / patterns[i].length);
+		for (var j = 0; j < patterns[i].length; j++) {
+			patterns[i][j] /= stddev;
+		}
+	}
+
+	stage = new createjs.Stage('canvas');
+	line = new createjs.Shape();
+	line.y = 500;
+	stage.addChild(line);
+	linePitch = new createjs.Shape();
+	linePitch.y = 500;
+	stage.addChild(linePitch);
+	// createjs.Ticker.addEventListener('tick', tick);
+	// createjs.Ticker.timingMode = createjs.Ticker.RAF;
+}
+
+function processing() {
+	analyser.getFloatTimeDomainData(buffer);
+	var freq = autoCorrelation(buffer);
+	// Convert frequency to semitone. Note: low volume => -Infinity
+	var semitone = 69 + 12 * Math.LOG2E * Math.log(freq / 440);
+	pitchBuffer.shift();
+	pitchBuffer.push(semitone);
+
+	if (isFinite(semitone)) {
+		console.log(semitone);
+		for (var i = 0; i < patterns.length; i++) {
+			var E = testMatch(patterns[i]);
+			if (isFinite(E)) {
+				console.log('[P' + i + '] ' + E);
+			}
+
+		}
+	}
+
+	// var zcr = 0;
+	// for (var i = 1; i < SPF; i++) {
+	// 	if (buffer[i] * buffer[i - 1] <= 0)
+	// 		zcr++;
+	// }
+	// console.log(zcr);
+	// pitchBuffer.shift();
+	// pitchBuffer.push(zcr);
+
+
+	line.graphics.c().s('blue').mt(0, 0);
+	for (var i = 0; i < SPF; i++) {
+		line.graphics.lt(i, 200 * buffer[i]);
+	}
+	linePitch.graphics.c().s('red').mt(0, 0);
+	for (var i = 0; i < pitchBuffer.length; i++) {
+		if (isFinite(pitchBuffer[i])) {
+			linePitch.graphics.lt(2*i, -3 * pitchBuffer[i]);
+		} else {
+			linePitch.graphics.mt(2*i, 0);
+		}
+	}
+	stage.update();
+}
+
+function autoCorrelation(buf) {
+	var volume = 0;
+	for (var i = 0; i < SPF; i++) {
+		volume += Math.abs(buf[i]);
+	}
+	if (volume / SPF < 0.03)
+		return 0;
+
+	var zcr = 0;
+	for (var i = 1; i < SPF; i++) {
+		if (buf[i] * buf[i - 1] <= 0)
+			zcr++;
+	}
+	if (zcr > 40)
+		return 0;
+
+	// var minOffset = audioCtx.sampleRate / 1000 | 0;
+	var minOffset = 0;
+	var bestOffset = -1;
+	var best = -Infinity;
+	var acf = [];
+	for (var i = minOffset; i < SPF; i++) {
+		var v = 0;
+		for (var j = 0; j + i < SPF; j++) {
+			v += buf[j] * buf[j + i];
+		}
+		acf.push(v);
+	}
+	var sum = 0;
+	for (var i = 0; i < acf.length; i++) {
+		sum += acf[i];
+	}
+	var mean = sum / acf.length;
+	var flag = false;
+	for (var i = 0; i < acf.length; i++) {
+		if (acf[i] < mean)
+			flag = true;
+		if (flag) {
+			if (acf[i] > best) {
+				best = acf[i];
+				bestOffset = i;
+			}
+		}
+	}
+
+	var freq = audioCtx.sampleRate / bestOffset;
+	return (freq > 1000) ? 0 : freq;
+}
+
+function testMatch(ptn) {
+	var best = Infinity;
+	var sum = 0;
+	var count = 0;
+	for (var i = 1; i <= PBS; i++) {
+		if (isFinite(pitchBuffer[PBS - i])) {
+			sum += pitchBuffer[PBS - i];
+			count++;
+		}
+		if (i <= 10)
+			continue;
+		var mean = sum / count;
+		var stddev = 0;
+		var buf = pitchBuffer.slice(PBS - i);
+		for (var j = 0; j < buf.length; j++) {
+			if (isFinite(buf[j])) {
+				buf[j] -= mean;
+				stddev += buf[j] * buf[j];
+			}
+		}
+		stddev = Math.max(Math.sqrt(stddev / count), 1);
+		for (var j = 0; j < buf.length; j++) {
+			buf[j] /= stddev;
+		}
+
+		var diff = 0;
+		var checkpoint = new Array(ptn.length);
+		for (var j = 0; j < buf.length; j++) {
+			if (isFinite(buf[j])) {
+				var k = (ptn.length * j / buf.length) | 0;
+				if (Math.abs(buf[j] - ptn[k]) < 0.1) {
+					checkpoint[k] = true;
+				}
+				diff += Math.pow(buf[j] - ptn[k], 2);
+			}
+		}
+		for (var k = 0; k < checkpoint.length; k++) {
+			if (!checkpoint[k]) {
+				diff = Infinity;
+				break;
+			}
+		}
+		diff /= count;
+		if (diff < best) {
+			best = diff;
+		}
+	}
+	return best;
+}
+	</script>
+</body>
+</html>

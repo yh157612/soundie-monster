@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+    <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
+    <script src="https://code.createjs.com/tweenjs-0.6.2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/jquery/3.0.0/jquery.min.js"></script>
+    <script src="/js/game.js"></script>
+    <script src="/js/audio.js"></script>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body onload="init()">
+    <canvas id="canvas"></canvas>
+
+    <div id="dieDiv">
+        <img src="/img/sheep_cry.png">
+        <h2>You're dead!, Click Restart to try again</h2>
+        <button id="restartBut" onclick="restartClick()">Restart?</button>
+    </div>
+    <div id="startDiv">
+        <img src="/img/sheep_burned64.png">
+        <h2>Welcome to the game!! Please make sure your microphone works properly</h2>
+        <button id="startBut" onclick="play()">start</button>
+    </div>
+
+</body>
+</html>
