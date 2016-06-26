@@ -17,7 +17,7 @@ var pitchCallback = null;
 
 // Some parameters:
 // Melody matching tolerance, higher => easier
-var TOLERANCE = 0.1;
+var TOLERANCE = 0.2;
 // Volume threshold, higher => need louder
 var VOLTHRESH = 0.03;
 // Minimal humming time (in #element in pitchBuffer), higher => need longer humming

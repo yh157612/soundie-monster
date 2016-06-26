@@ -15,9 +15,10 @@ var animateContainer = null;
 var attackCircle = null;
 
 var patterns = [
-	[0],
+	[0, 1, 2, 3, 4, 5],
 	[0, 1, 0],
-	[1, 0, 1]
+	[1, 0, 1],
+	[5, 4, 3, 2, 1, 0]
 ];
 var score = 0;
 
@@ -137,7 +138,7 @@ function drawPitch(pitchBuf) {
 	for (var i = 0; i < pitchBuf.length; i++) {
 		if (isFinite(pitchBuf[i])) {
 			var point = new createjs.Shape();
-			point.graphics.f('cyan').dc(2 * i, 100 - pitchBuf[i], 2);
+			point.graphics.f('cyan').dc(2 * i, 200 - 3 * pitchBuf[i], 2);
 			pitchContainer.addChild(point);
 		}
 	}
@@ -155,7 +156,7 @@ function tick(event) {
 }
 
 function attackAnimate(n){
-    var colorType = ["red","blue","green"];
+    var colorType = ["red","blue","green","yellow"];
     attackCircle = new createjs.Shape();
     attackCircle.graphics.ss(2.5).s(colorType[n]).drawCircle(0, 0, 90);
     animateContainer.addChild(attackCircle);
