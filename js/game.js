@@ -26,7 +26,7 @@ function EnemyType() {
 	var angle = Math.random() * 360;
 	var n = Math.floor(Math.random() * patterns.length);
 	this.type = n;
-	this.img = new createjs.Bitmap("/img/fox_burned"+n+".png");
+	this.img = new createjs.Bitmap("img/fox_burned"+n+".png");
 	this.img.x = centerX-76+winCircus*Math.cos(angle);
 	this.img.y = centerY-66+winCircus*Math.sin(angle);
 }
@@ -42,11 +42,11 @@ function init() {
 	
 	var spriteSheet = new createjs.SpriteSheet({
 		images: [
-			"/img/sheep_burned64.png",
-			"/img/sheep_nervous.png",
-			"/img/sheep_nervous2.png",
-			"/img/sheep_shock1.png",
-			"/img/sheep_shock2.png"
+			"img/sheep_burned64.png",
+			"img/sheep_nervous.png",
+			"img/sheep_nervous2.png",
+			"img/sheep_shock1.png",
+			"img/sheep_shock2.png"
 		],
 		frames: {width: 152, height: 135},
 		framerate: 0.3,
